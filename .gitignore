@@ -130,7 +130,10 @@ build/
 .idea/*.xml
 ./.idea
 
+data/
 ./external
 external/
-data/
+!external/raygui.h
+
+
 
