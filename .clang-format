@@ -1,0 +1,38 @@
+BasedOnStyle: LLVM
+IndentWidth: 2
+UseTab: Never
+TabWidth: 2
+ColumnLimit: 60
+# Allman por defecto
+# Custom para que las lineas 13  y siguientes tengan efecto
+BreakBeforeBraces: Allman 
+#AllowShortFunctionsOnASingleLine: Inline  # None
+
+# Break after opening parenthesis if arguments don't fit
+AllowAllArgumentsOnNextLine: false
+BinPackArguments: false
+
+# You can also control parameters in function declarations
+BinPackParameters: false
+AllowAllParametersOfDeclarationOnNextLine: false
+
+# Alignment style when broken
+AlignAfterOpenBracket: AlwaysBreak
+# This forces a line break after the opening parenthesis
+
+# Or use Align to align with the opening parenthesis
+# AlignAfterOpenBracket: Align
+
+  #IndentCaseLabels: false
+  #ColumnLimit: 80
+  #SortIncludes: false
+  #BraceWrapping:
+  #AfterFunction: false
+  #AfterControlStatement: false
+  #AfterClass: false
+  #Cpp11BracedListStyle: false
+
+# Force pointers to the type for C++.
+#DerivePointerAlignment: false
+#PointerAlignment: Left
+
