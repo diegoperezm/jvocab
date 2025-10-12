@@ -104,12 +104,9 @@ typedef struct
  Rectangle char_pos[];
 } TextData;
 
-
-
-
 void init_machine(Machine *machine);
 State update_state(Machine *machine, Event event);
-Event process_input(Machine *machine, TextData *text_data);
+Event process_mouse_input(Machine *machine, TextData *text_data);
 void render_state(Machine *machine, TextData *text_data);
 TextData *init_text(const char text[]);
 void cleanup_text(TextData *text_data);

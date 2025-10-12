@@ -26,7 +26,7 @@ int main(void)
 
   while (!WindowShouldClose())
   {
-   Event event = process_input(&machine, text_data);
+   Event event = process_mouse_input(&machine, text_data);
     update_state(&machine, event);
 
     BeginDrawing();
