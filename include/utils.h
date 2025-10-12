@@ -15,6 +15,7 @@
   X(STATE_IDLE)                                                          \
   X(STATE_HOVERING)                                                      \
   X(STATE_SELECTED)                                                      \
+  X(STATE_SELECTED_HOVERING)                                             \
   X(STATE_ERROR)                                                         \
   X(INVALID_STATE)                                                       \
   X(NUM_STATES)
@@ -52,12 +53,7 @@ typedef struct
  int select_start;
  int select_length;
  int hovered_char;
- int char_count;
- Vector2 *char_positions;
- float *char_widths;
 } SelectionContext;
-
-
 
 typedef struct
 {
@@ -69,6 +65,7 @@ typedef struct
 #define ELEMENT_LIST                                                           \
   X(ELMNT_BLANK)                                                               \
   X(TOGGLE_GROUP)                                                              \
+  X(J_TEXT)                                                                    \
   X(ELMNT_NUM)
 
 #define X(element) element,
@@ -97,18 +94,24 @@ typedef struct
 
 typedef struct 
 {
- int codepoint_count;
- int *codepoints;
  Font font_japanese;
- Vector2 position;
  char *text;
+ Vector2 position;
+ float font_size;
+ float spacing;
+ int char_count;
+ int *text_codepoints;
+ Rectangle char_pos[];
 } TextData;
+
+
+
 
 void init_machine(Machine *machine);
 State update_state(Machine *machine, Event event);
 Event process_input(Machine *machine, TextData *text_data);
 void render_state(Machine *machine, TextData *text_data);
-void init_text(const char text[], TextData *text_data);
+TextData *init_text(const char text[]);
 void cleanup_text(TextData *text_data);
 void cleanup_machine(Machine *machine);
 

@@ -53,9 +53,6 @@ void init_machine(Machine *machine)
  machine->context.hovered_char    = -1;
  machine->context.select_start    = -1;
  machine->context.select_length   = 0; 
- machine->context.char_count      = 0;
- machine->context.char_positions  = NULL;
- machine->context.char_widths     = NULL;
  machine->font_loaded             = 0;
 }
 
@@ -64,7 +61,7 @@ State update_state(Machine *machine, Event event)
 {
   State current = machine->current_state;
   State next = transition_table[current][event];
-  
+ 
   if (next != INVALID_STATE && next != 0)
   {
     TraceLog(LOG_INFO, "State transition: %s + %s -> %s", 
@@ -91,91 +88,126 @@ State update_state(Machine *machine, Event event)
   return current;
 }
 
+
 Event process_input(Machine *machine, TextData *text_data)
 {
- Vector2 mouse_pos = GetMousePosition();
- int prev_hovered = machine->context.hovered_char;
- machine->context.hovered_char = -1;
+  State current_state = machine->current_state;
+  Vector2 mouse_pos = GetMousePosition();
+  
 
- Vector2 position = text_data->position;
- float font_size = 48.0f;
- float spacing   = 2.0f;
- float scale_factor = font_size / (float)text_data->font_japanese.baseSize;
-
- char char_idx = 0;
- float offset_x = 0;
- float offset_y = 0;
- int text_len = (int)TextLength(text_data->text);
-
- for(int i = 0; i < text_len; char_idx++ ) 
- {
-   int codepoint_byte_count = 0;
-   int codepoint = GetCodepoint(&text_data->text[i], &codepoint_byte_count); 
-
-   if(codepoint == '\n')
-   {
-     offset_y += font_size + 10;
-     offset_x = 0;
-     i += codepoint_byte_count;
-     continue;
-   }
-   int index = GetGlyphIndex(text_data->font_japanese, codepoint);
-   float glyph_width = (text_data->font_japanese.glyphs[index].advanceX == 0)     ?
-                        text_data->font_japanese.recs[index].width * scale_factor :
-                        text_data->font_japanese.glyphs[index].advanceX * scale_factor;
-
-   Rectangle char_rect = {
-     .x = position.x + offset_x,
-     .y = position.y + offset_y,
-     .width = glyph_width + spacing,
-     .height = font_size
-   };
-   if(CheckCollisionPointRec(mouse_pos, char_rect))
-   {
-     machine->context.hovered_char = char_idx;
-   }
-
-   offset_x += glyph_width + spacing;
-   i += codepoint_byte_count;
- }
-  machine->context.char_count = char_idx;
-
-
-
-  if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
+  int old_hovered = machine->context.hovered_char;
+  machine->context.hovered_char = -1;
+  
+  // Check for hovered character
+  for(int i = 0; i < text_data->char_count; i++) 
   {
-    if(machine->context.hovered_char != -1)
+    if(CheckCollisionPointRec(mouse_pos, text_data->char_pos[i]))
     {
-      if(machine->context.hovered_char == machine->context.select_start)
+      machine->context.hovered_char = i;
+      break;
+    }
+  }
+  
+
+  if(current_state == STATE_INIT)
+  {
+    return NUM_EVENTS;
+  }
+  
+  if(current_state == STATE_ERROR)
+  {
+    return NUM_EVENTS;
+  }
+  
+  if(current_state == STATE_IDLE)
+  {
+    if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
+    {
+      if(machine->context.hovered_char != -1)
       {
-        return evt_click_same_char;
+        machine->context.select_start = machine->context.hovered_char;
+        machine->context.select_length = 1;
+        return evt_click_char;
       }
-
-     machine->context.select_start = machine->context.hovered_char;
-     machine->context.select_length = 1;
-     return evt_click_char;
+      else
+      {
+        return evt_click_empty;
+      }
     }
-    else {
-      return evt_click_empty;
+    
+    // Handle hover transitions
+    if(machine->context.hovered_char != -1 && old_hovered == -1)
+    {
+      return evt_mouse_hover_char;
     }
   }
-
-  if(machine->context.hovered_char != -1 && prev_hovered == -1)
+  
+  if(current_state == STATE_HOVERING)
   {
-    return evt_mouse_hover_char;
+    // Handle mouse button press while hovering
+    if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
+    {
+      if(machine->context.hovered_char != -1)
+      {
+        machine->context.select_start = machine->context.hovered_char;
+        machine->context.select_length = 1;
+        return evt_click_char;
+      }
+      else
+      {
+        return evt_click_empty;
+      }
+    }
+    
+    // Handle leaving hover
+    if(machine->context.hovered_char == -1 && old_hovered != -1)
+    {
+      return evt_mouse_leave_char;
+    }
   }
-
-  if(machine->context.hovered_char == -1 && prev_hovered != -1)
+  
+  if(current_state == STATE_SELECTED)
   {
-    return evt_mouse_leave_char;
+    // Handle clicking on selected character
+    if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
+    {
+      if(machine->context.hovered_char != -1)
+      {
+        if(machine->context.hovered_char == machine->context.select_start)
+        {
+          return evt_click_same_char;
+        }
+        else
+        {
+          machine->context.select_start = machine->context.hovered_char;
+          machine->context.select_length = 1;
+          return evt_click_char;
+        }
+      }
+      else
+      {
+        return evt_click_empty;
+      }
+    }
+    
+    // Handle hover transitions
+    if(machine->context.hovered_char != -1 && old_hovered == -1)
+    {
+      return evt_mouse_hover_char;
+    }
+    if(machine->context.hovered_char == -1 && old_hovered != -1)
+    {
+      return evt_mouse_leave_char;
+    }
   }
-
+  
   return NUM_EVENTS;
 }
 
-
 void render_state(Machine *machine, TextData *text_data)
 {
+  State current_state = machine->current_state;
+  
   if (!machine->font_loaded || text_data->font_japanese.texture.id == 0)
   {
     DrawText("ERROR: Japanese font not loaded", 50, 100, 20, RED);
@@ -183,87 +215,82 @@ void render_state(Machine *machine, TextData *text_data)
     return;
   }
   
-  // Draw UI info
-  /*
-  const char *state_info = TextFormat("State: %s | Selected: %d | Hovered: %d", 
-      state_name[machine->current_state],
-      machine->context.select_start,
-      machine->context.hovered_char);
-  DrawText(state_info, 50, 20, 15, DARKBLUE);
-  DrawText("Click chars to select | Ctrl+A select all | ", 50, 45, 15, GRAY);
-  */ 
-  // Render text with selection/hover
-  Vector2 position = text_data->position;
-  float font_size = 48.0f;
-  float spacing = 2.0f;
-  float scale_factor = font_size / (float)text_data->font_japanese.baseSize;
-  
-  int char_idx = 0;
-  float offset_x = 0;
-  float offset_y = 0;
-  int text_len = (int)TextLength(text_data->text);
-  
-  for (int i = 0; i < text_len; char_idx++)
+  if(current_state == STATE_INIT)
   {
-    int codepoint_byte_count = 0;
-    int codepoint = GetCodepoint(&text_data->text[i], &codepoint_byte_count);
-    
-    if (codepoint == '\n')
-    {
-      offset_y += font_size + 10;
-      offset_x = 0;
-      i += codepoint_byte_count;
-      continue;
-    }
-    
-    int index = GetGlyphIndex(text_data->font_japanese, codepoint);
-    float glyph_width = (text_data->font_japanese.glyphs[index].advanceX == 0) ? 
-        text_data->font_japanese.recs[index].width * scale_factor : 
-        text_data->font_japanese.glyphs[index].advanceX * scale_factor;
-    
-    Vector2 char_pos = { position.x + offset_x, position.y + offset_y };
+    DrawText("Initializing...", 50, 50, 20, GRAY);
+    return;
+  }
+  
+  if(current_state == STATE_ERROR)
+  {
+    DrawText("ERROR STATE", 50, 50, 20, RED);
+    return;
+  }
+  
+  for (int i = 0; i < text_data->char_count; i++)
+  {
+    Vector2 char_pos = { text_data->char_pos[i].x, text_data->char_pos[i].y }; 
+    Rectangle char_rect = text_data->char_pos[i];
     
     Color text_color = LIGHTGRAY;
-    int is_selected = (machine->context.select_start >= 0) && 
-                      (char_idx >= machine->context.select_start) && 
-                      (char_idx < machine->context.select_start + machine->context.select_length);
-    int is_hovered = (char_idx == machine->context.hovered_char);
+    int is_selected = (machine->context.select_length > 0) &&
+                      (i >= machine->context.select_start) && 
+                      (i < machine->context.select_start + machine->context.select_length);
+    int is_hovered = (i == machine->context.hovered_char);
     
-    if (is_selected)
+    // Priority: hover over selection
+    if(is_hovered && (current_state == STATE_HOVERING || current_state == STATE_SELECTED))
     {
-      DrawRectangle((int)char_pos.x - 2, (int)char_pos.y, 
-                    (int)(glyph_width + spacing + 2), (int)font_size, 
+      DrawRectangle((int)char_rect.x - 2, (int)char_rect.y, 
+                    (int)char_rect.width + 2, (int)char_rect.height, 
+                    Fade(SKYBLUE, 0.6f));
+      text_color = BLACK;
+    }
+    else if(is_selected && current_state == STATE_SELECTED)
+    {
+      DrawRectangle((int)char_rect.x - 2, (int)char_rect.y, 
+                    (int)char_rect.width + 2, (int)char_rect.height, 
                     Fade(YELLOW, 0.8f));
       text_color = BLACK;
     }
-    else if (is_hovered)
-    {
-      DrawRectangle((int)char_pos.x - 2, (int)char_pos.y, 
-                    (int)(glyph_width + spacing + 2), (int)font_size, 
-                    Fade(WHITE, 0.6f));
-      text_color = BLACK;
-    }
     
-    DrawTextCodepoint(text_data->font_japanese, codepoint, char_pos, font_size, text_color);
-    
-    offset_x += glyph_width + spacing;
-    i += codepoint_byte_count;
+    DrawTextCodepoint(text_data->font_japanese, 
+                      text_data->text_codepoints[i],
+                      char_pos,
+                      text_data->font_size,
+                      text_color);
   }
+  
+  // Debug: Show current state
+  const char* state_n = state_name[current_state];
+  DrawText(TextFormat("State: %s", state_n), 10, 10, 20, GREEN);
 }
 
-void init_text(const char text[], TextData *text_data)
+
+TextData *init_text(const char text[])
 {
+  int text_len = (int)TextLength(text);
+  TextData *text_data = malloc(sizeof(TextData) + text_len * sizeof(Rectangle));
+
+  text_data->font_size = 48.0f;
+  text_data->spacing = 2.0f;
   text_data->text = (char *)malloc(strlen(text) + 1);
-  strcpy(text_data->text, text);
   text_data->position = (Vector2){ 50.0f, 100.0f };
-  
-  // Load Japanese character ranges
+  strcpy(text_data->text, text); 
+
+  text_data->text_codepoints = (int *)malloc(text_len + sizeof(int));
+
+  float offset_x = 0;
+  float offset_y = 0;
+
+
+
   int ranges[][2] = {
     {0x0020, 0x007E},  // Basic Latin
-    {0x3000, 0x303F},  // CJK Symbols and Punctuation
+    {0x3000, 0x303F},  // Symbols and Punctuation
     {0x3040, 0x309F},  // Hiragana
     {0x30A0, 0x30FF},  // Katakana
-    {0x4E00, 0x9FAF}   // CJK Unified Ideographs
+    {0x4E00, 0x9FAF}   // Unified Ideographs
   };
   
   int num_ranges = sizeof(ranges) / sizeof(ranges[0]);
@@ -274,6 +301,7 @@ void init_text(const char text[], TextData *text_data)
   }
   
   int *codepoints = (int *)malloc(codepoint_count * sizeof(int));
+
   int idx = 0;
   for (int i = 0; i < num_ranges; i++) {
     for (int cp = ranges[i][0]; cp <= ranges[i][1]; cp++) {
@@ -286,23 +314,53 @@ void init_text(const char text[], TextData *text_data)
                                 64,
                                 codepoints,
                                 codepoint_count);
+  free(codepoints);
 
+  float scale_factor = text_data->font_size / (float)text_data->font_japanese.baseSize;
+  int j = 0;
+  for (int i = 0; i < text_len;) 
+  {
+        int byte_count = 0;
+        int cp = GetCodepoint(&text[i], &byte_count);
+        if (cp == '\n') {
+            offset_y += text_data->font_size + 10;
+            offset_x = 0;
+            i += byte_count;
+            continue;
+        }
+        text_data->text_codepoints[j] = cp;
 
-  text_data->codepoint_count = codepoint_count;
-  text_data->codepoints = codepoints;
+        int index = GetGlyphIndex(text_data->font_japanese, cp);
+        float glyph_width = (text_data->font_japanese.glyphs[index].advanceX == 0)
+            ? text_data->font_japanese.recs[index].width * scale_factor
+            : text_data->font_japanese.glyphs[index].advanceX * scale_factor;
+
+        text_data->char_pos[j] = (Rectangle){
+            .x = text_data->position.x + offset_x,
+            .y = text_data->position.y + offset_y,
+            .width = glyph_width + text_data->spacing,
+            .height = text_data->font_size
+        };
+
+        offset_x += glyph_width + text_data->spacing;
+        i += byte_count;
+        j++;
+    } // end::for  
+
+  text_data->char_count = j; 
+  return text_data;
 }
 
 void cleanup_text(TextData *text_data)
 {
   if (text_data->text) free(text_data->text);
-  if (text_data->codepoints) free(text_data->codepoints);
+  if (text_data->text_codepoints) free(text_data->text_codepoints);
   if (text_data->font_japanese.texture.id != 0) UnloadFont(text_data->font_japanese);
 }
 
-void cleanup_machine(Machine *machine)
-{
-  if (machine->context.char_positions) free(machine->context.char_positions);
-  if (machine->context.char_widths) free(machine->context.char_widths);
+
+void cleanup_machine(Machine *machine) { 
+  (void)printf("%d", machine->current_state);
 }
 
 int (*Return_Map_Pr(const State state))[SIZE_ROWS][SIZE_COLS] {
@@ -361,8 +419,9 @@ void grid_layout(Machine *machine)
         }
 
         break;
+      case J_TEXT:  
 
-           default:
+          default:
         break;
       }
     }
@@ -376,7 +435,7 @@ void setup_raylib(void)
   const int screenH = 600;
   SetConfigFlags(FLAG_WINDOW_RESIZABLE);
   InitWindow(screenW, screenH, "Journal");
-  SetTargetFPS(30);
+  SetTargetFPS(3);
   GuiLoadStyleCyber();
 }
 
@@ -498,27 +557,8 @@ ChapterData get_chapter_data(const char *filename)
   xmlCleanupParser();
   return chapter;
 }
-/*
-void init_text(const char text[], TextData *text_data){
 
- text_data->codepoints = LoadCodepoints(text, &text_data->codepoint_count);
-
- Font font = LoadFontEx(
-      "../fonts/NotoSansJP-Regular.ttf",
-      64,
-      text_data->codepoints,
-      text_data->codepoint_count);
-
-  text_data->font_japanese = font;
-
-  SetTextureFilter(font.texture, TEXTURE_FILTER_BILINEAR);
-  SetTextLineSpacing(20);
-
-  UnloadCodepoints(text_data->codepoints);
-}
-
-*/
- // ChapterData chapter = get_chapter_data("../data/3");
- // char *text = chapter_data_to_string(&chapter);
+// ChapterData chapter = get_chapter_data("../data/3");
+// char *text = chapter_data_to_string(&chapter);
 
  
