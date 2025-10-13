@@ -56,11 +56,45 @@ void init_machine(Machine *machine)
  machine->font_loaded             = 0;
 }
 
-Event process_mouse_input(Machine *machine, TextData *text_data)
+
+State update_state(Machine *machine, Event event)
+{
+  State current = machine->current_state;
+  State next = transition_table[current][event];
+ 
+  if (next != INVALID_STATE && next != 0)
+  {
+    TraceLog(LOG_INFO, "State transition: %s + %s -> %s", 
+             state_name[current], event_name[event], state_name[next]);
+    machine->current_state = next;
+
+   // not sure   
+    switch (next)
+    {
+      case STATE_IDLE:
+        machine->context.select_start = -1;
+        machine->context.select_length = 0;
+        machine->context.hovered_char = -1;
+        break;
+        
+      default:
+        break;
+    }
+    // not sure   
+
+    return next;
+  }
+  
+  return current;
+}
+
+
+Event process_input(Machine *machine, TextData *text_data)
 {
   State current_state = machine->current_state;
   Vector2 mouse_pos = GetMousePosition();
   
+
   int old_hovered = machine->context.hovered_char;
   machine->context.hovered_char = -1;
   
@@ -74,91 +108,101 @@ Event process_mouse_input(Machine *machine, TextData *text_data)
     }
   }
   
-  if(current_state == STATE_INIT || current_state == STATE_ERROR)
+
+  if(current_state == STATE_INIT)
   {
     return NUM_EVENTS;
   }
   
-  // Detect click events
-  if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
+  if(current_state == STATE_ERROR)
   {
-    if(machine->context.hovered_char != -1)
+    return NUM_EVENTS;
+  }
+  
+  if(current_state == STATE_IDLE)
+  {
+    if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
     {
-      // Check if clicking same selected char
-      if((current_state == STATE_SELECTED || current_state == STATE_SELECTED_HOVERING) &&
-         machine->context.hovered_char == machine->context.select_start)
+      if(machine->context.hovered_char != -1)
       {
-        return evt_click_same_char;
+        machine->context.select_start = machine->context.hovered_char;
+        machine->context.select_length = 1;
+        return evt_click_char;
       }
-      return evt_click_char;
+      else
+      {
+        return evt_click_empty;
+      }
     }
-    else
+    
+    // Handle hover transitions
+    if(machine->context.hovered_char != -1 && old_hovered == -1)
     {
-      return evt_click_empty;
+      return evt_mouse_hover_char;
     }
   }
   
-  // Detect hover transitions
-  if(machine->context.hovered_char != -1 && old_hovered == -1)
+  if(current_state == STATE_HOVERING)
   {
-    return evt_mouse_hover_char;
+    // Handle mouse button press while hovering
+    if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
+    {
+      if(machine->context.hovered_char != -1)
+      {
+        machine->context.select_start = machine->context.hovered_char;
+        machine->context.select_length = 1;
+        return evt_click_char;
+      }
+      else
+      {
+        return evt_click_empty;
+      }
+    }
+    
+    // Handle leaving hover
+    if(machine->context.hovered_char == -1 && old_hovered != -1)
+    {
+      return evt_mouse_leave_char;
+    }
   }
   
-  if(machine->context.hovered_char == -1 && old_hovered != -1)
+  if(current_state == STATE_SELECTED)
   {
-    return evt_mouse_leave_char;
+    // Handle clicking on selected character
+    if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
+    {
+      if(machine->context.hovered_char != -1)
+      {
+        if(machine->context.hovered_char == machine->context.select_start)
+        {
+          return evt_click_same_char;
+        }
+        else
+        {
+          machine->context.select_start = machine->context.hovered_char;
+          machine->context.select_length = 1;
+          return evt_click_char;
+        }
+      }
+      else
+      {
+        return evt_click_empty;
+      }
+    }
+    
+    // Handle hover transitions
+    if(machine->context.hovered_char != -1 && old_hovered == -1)
+    {
+      return evt_mouse_hover_char;
+    }
+    if(machine->context.hovered_char == -1 && old_hovered != -1)
+    {
+      return evt_mouse_leave_char;
+    }
   }
   
   return NUM_EVENTS;
 }
-
-State update_state(Machine *machine, Event event)
-{
-  State current = machine->current_state;
-  State next = transition_table[current][event];
- 
-  if (next != INVALID_STATE && next != 0)
-  {
-    TraceLog(LOG_INFO, "State transition: %s + %s -> %s", 
-             state_name[current], event_name[event], state_name[next]);
-    
-    // Update data based on EVENT (what happened)
-    switch (event)
-    {
-      case evt_click_char:
-        // Set selection to clicked character
-        machine->context.select_start = machine->context.hovered_char;
-        machine->context.select_length = 1;
-        break;
-        
-      case evt_click_same_char:
-      case evt_click_empty:
-        // Clear selection
-        machine->context.select_start = -1;
-        machine->context.select_length = 0;
-        break;
-        
-      case evt_mouse_leave_char:
-        // Hover left, but keep selection if any
-        // (hovered_char already updated in process_mouse_input)
-        break;
-        
-      case evt_mouse_hover_char:
-        // Hover entered
-        // (hovered_char already updated in process_mouse_input)
-        break;
-        
-      default:
-        break;
-    }
-    
-    machine->current_state = next;
-    return next;
-  }
-  
-  return current;
-}
-
 
 void render_state(Machine *machine, TextData *text_data)
 {
@@ -198,7 +242,7 @@ void render_state(Machine *machine, TextData *text_data)
     if(is_hovered && (current_state == STATE_HOVERING || current_state == STATE_SELECTED))
     {
       DrawRectangle((int)char_rect.x - 2, (int)char_rect.y, 
-                    (int)char_rect.width /*+ 2*/, (int)char_rect.height, 
+                    (int)char_rect.width + 2, (int)char_rect.height, 
                     Fade(SKYBLUE, 0.6f));
       text_color = BLACK;
     }
