@@ -486,31 +486,34 @@ void render_state(Machine *machine, TextData *text_data)
   {
     Rectangle char_rect = text_data->char_pos[button_index];
 
-// STATE_IDLE
-    if (current_state == STATE_IDLE)
+    switch (current_state)
     {
+    case STATE_IDLE:
+    {
+      machine->context.select_start = -1;
+      machine->context.select_length = 0;
+      machine->context.hovered_char = -1;
+      machine->context.clicked_char = -1;
+ 
       int button_state = GuiButtonCodepoint(
           char_rect,
           text_data->font_japanese,
           text_data->text_codepoints[button_index],
           text_data->font_size,
           LIGHTGRAY);
-
       if (button_state == is_selected)
       {
         machine->context.clicked_char = button_index;
         update_state(machine, evt_click_char);
       }
-
       if (button_state == is_hovered)
       {
         machine->context.hovered_char = button_index;
         update_state(machine, evt_mouse_hover_char);
       }
-    } // end::idle
-
-// STATE_HOVERING
-    if (current_state == STATE_HOVERING)
+      break;
+    } 
+    case STATE_HOVERING:
     {
       int button_state = GuiButtonCodepoint(
           char_rect,
@@ -518,11 +521,9 @@ void render_state(Machine *machine, TextData *text_data)
           text_data->text_codepoints[button_index],
           text_data->font_size,
           LIGHTGRAY);
-
       if (button_state == is_idle)
       {
       }
-
       if (button_state == is_hovered)
       {
         machine->context.hovered_char = button_index;
@@ -533,16 +534,14 @@ void render_state(Machine *machine, TextData *text_data)
             (int)char_rect.height,
             Fade(WHITE, 0.6f));
       }
-
       if (button_state == is_selected)
       {
         machine->context.clicked_char = button_index;
         update_state(machine, evt_click_char);
       }
+      break;
     }
-
-// STATE_SELECTED
-    if (current_state == STATE_SELECTED)
+    case STATE_SELECTED:
     {
       int button_state = GuiButtonCodepoint(
           char_rect,
@@ -550,7 +549,6 @@ void render_state(Machine *machine, TextData *text_data)
           text_data->text_codepoints[button_index],
           text_data->font_size,
           LIGHTGRAY);
-
       if (machine->context.clicked_char == button_index)
       {
         machine->context.clicked_char = button_index;
@@ -560,7 +558,6 @@ void render_state(Machine *machine, TextData *text_data)
             (int)char_rect.width + 2,
             (int)char_rect.height,
             Fade(YELLOW, 0.8f));
-
         GuiButtonCodepoint(
             char_rect,
             text_data->font_japanese,
@@ -579,7 +576,6 @@ void render_state(Machine *machine, TextData *text_data)
             (int)char_rect.width + 2,
             (int)char_rect.height,
             Fade(YELLOW, 0.8f));
-
         GuiButtonCodepoint(
             char_rect,
             text_data->font_japanese,
@@ -587,7 +583,6 @@ void render_state(Machine *machine, TextData *text_data)
             text_data->font_size,
             BLACK);
       }
-
       if (button_state == is_hovered &&
           machine->context.clicked_char != button_index)
       {
@@ -599,8 +594,15 @@ void render_state(Machine *machine, TextData *text_data)
             (int)char_rect.height,
             Fade(WHITE, 0.6f));
       }
+      break;
     }
-
+     case STATE_INIT: 
+     case STATE_SELECTED_HOVERING: 
+     case STATE_ERROR:
+     case INVALID_STATE:
+     case NUM_STATES:
+     break;
+    }
   } // end::for
 
   // Debug: Show current state
