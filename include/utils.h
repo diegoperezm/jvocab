@@ -50,9 +50,10 @@ extern const char *event_name[];
 extern State transition_table[NUM_STATES][NUM_EVENTS];
 typedef struct 
 {
+ int hovered_char;
  int select_start;
  int select_length;
- int hovered_char;
+ int clicked_char;
 } SelectionContext;
 
 typedef struct
@@ -114,6 +115,9 @@ void render_state(Machine *machine, TextData *text_data);
 TextData *init_text(const char text[]);
 void cleanup_text(TextData *text_data);
 void cleanup_machine(Machine *machine);
+
+int GuiButtonCodepoint(Rectangle bounds, Font font, int codepoint, float fontSize, Color textColor);
+
 
 void setup_raylib(void);
 void grid_layout(Machine *machine);

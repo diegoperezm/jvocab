@@ -26,13 +26,10 @@ int main(void)
 
   while (!WindowShouldClose())
   {
-   Event event = process_input(&machine, text_data);
-    update_state(&machine, event);
 
     BeginDrawing();
       ClearBackground(BGCOLOR);
       render_state(&machine, text_data);
-
     EndDrawing();
   }
 
