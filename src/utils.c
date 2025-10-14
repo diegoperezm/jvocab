@@ -36,16 +36,16 @@ State transition_table[NUM_STATES][NUM_EVENTS] = {
     [STATE_HOVERING] =
         {
             [evt_mouse_hover_char] = STATE_HOVERING,
-            [evt_mouse_leave_char] = STATE_IDLE,
             [evt_click_char] = STATE_SELECTED,
+        //  [evt_mouse_leave_char] = STATE_IDLE,
         },
     [STATE_SELECTED] =
         {
-            [evt_mouse_hover_char] = STATE_HOVERING,
-            [evt_mouse_leave_char] = STATE_IDLE,
             [evt_click_char] = INVALID_STATE,
-            [evt_click_same_char] = INVALID_STATE,
-            [evt_click_empty] = STATE_IDLE,
+            //[evt_mouse_hover_char] = STATE_HOVERING,
+            //[evt_mouse_leave_char] = STATE_IDLE,
+            //[evt_click_empty] = STATE_IDLE,
+            //[evt_click_same_char] = INVALID_STATE,
         },
     [STATE_ERROR] = {0},
     [INVALID_STATE] = {0},
@@ -73,7 +73,7 @@ TextData *init_text(const char text[])
   strcpy(text_data->text, text);
 
   text_data->text_codepoints =
-      (int *)malloc(text_len + sizeof(int));
+      (int *)malloc(text_len * sizeof(int));
 
   float offset_x = 0;
   float offset_y = 0;
@@ -190,7 +190,7 @@ int (*Return_Map_Pr(const State state))
   }
 }
 
-void grid_layout(Machine *machine)
+void render_components(Machine *machine, TextData *text_data)
 {
   const float width = (float)GetScreenWidth();
   const float height = (float)GetScreenHeight();
@@ -236,7 +236,7 @@ void grid_layout(Machine *machine)
 
         break;
       case J_TEXT:
-
+         render_state(machine,text_data);
       default:
         break;
       }
@@ -605,7 +605,6 @@ void render_state(Machine *machine, TextData *text_data)
     }
   } // end::for
 
-  // Debug: Show current state
   const char *state_n = state_name[current_state];
   DrawText(
       TextFormat("State: %s", state_n),
@@ -615,7 +614,7 @@ void render_state(Machine *machine, TextData *text_data)
       GREEN);
 }
 
-State update_state(Machine *machine, Event event)
+void update_state(Machine *machine, Event event)
 {
   State current = machine->current_state;
   State next = transition_table[current][event];
@@ -629,15 +628,6 @@ State update_state(Machine *machine, Event event)
         event_name[event],
         state_name[next]);
     machine->current_state = next;
-
-    /*   case STATE_IDLE:
-          machine->context.select_start = -1;
-          machine->context.select_length = 0;
-          machine->context.hovered_char = -1;
-          machine->context.clicked_char = -1;
-    */
-    return next;
   }
 
-  return current;
 }

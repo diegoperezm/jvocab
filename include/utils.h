@@ -109,20 +109,22 @@ typedef struct
 
 
 void init_machine(Machine *machine);
-State update_state(Machine *machine, Event event);
+void update_state(Machine *machine, Event event);
 Event process_input(Machine *machine, TextData *text_data);
 void render_state(Machine *machine, TextData *text_data);
 TextData *init_text(const char text[]);
 void cleanup_text(TextData *text_data);
 void cleanup_machine(Machine *machine);
 
-int GuiButtonCodepoint(Rectangle bounds, Font font, int codepoint, float fontSize, Color textColor);
-
+int GuiButtonCodepoint(Rectangle bounds, Font font, int codepoint,
+    float fontSize, Color textColor);
 
 void setup_raylib(void);
-void grid_layout(Machine *machine);
+void render_components(Machine *machine, TextData *text_data);
 int (*Return_Map_Pr(State state))[SIZE_ROWS][SIZE_COLS];
-int *CodepointRemoveDuplicates(int *codepoints, int codepointCount, int *codepointResultCount);
+int *CodepointRemoveDuplicates(int *codepoints, int codepointCount, 
+                               int *codepointResultCount);
+
 char *chapter_data_to_string(const ChapterData *chapter);
 ChapterData get_chapter_data(const char *filename);
 

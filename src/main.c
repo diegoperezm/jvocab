@@ -29,7 +29,8 @@ int main(void)
 
     BeginDrawing();
       ClearBackground(BGCOLOR);
-      render_state(&machine, text_data);
+//      render_state(&machine, text_data);
+      render_components(&machine, text_data);
     EndDrawing();
   }
 
