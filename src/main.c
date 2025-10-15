@@ -9,18 +9,20 @@ int main(void)
 {
   setup_raylib();
   const Color BGCOLOR = (Color){1, 34, 43, 255};
-  Machine machine;
-  init_machine(&machine);
+  MachineApp m_app = {.current_state = STATE_A};
+  MachineJText m_j_text;
+  init_machine_j_text(&m_j_text);
 
-  const char text[] = "こんにちは、\n世界";
+  //const char text[] = "こんにちは、\n世界";
+  const char text[] = "こんにちは、世界";
   TextData *text_data =  init_text(text);
 
-  Event init_event = (text_data->font_japanese.texture.id != 0) ? 
+  EventJText init_event_j_text = (text_data->font_japanese.texture.id != 0) ? 
                       evt_font_loaded : evt_font_failed;
   
-  machine.font_loaded = (init_event == evt_font_loaded);
+  m_j_text.font_loaded = (init_event_j_text == evt_font_loaded);
 
-  update_state(&machine, init_event);
+  update_state_j_text(&m_j_text, init_event_j_text);
 
   SetTargetFPS(30);
 
@@ -29,14 +31,13 @@ int main(void)
 
     BeginDrawing();
       ClearBackground(BGCOLOR);
-//      render_state(&machine, text_data);
-      render_components(&machine, text_data);
+      render_components(&m_app, &m_j_text, text_data);
     EndDrawing();
   }
 
 
   cleanup_text(text_data);
-  cleanup_machine(&machine);
+  cleanup_machine_j_text(&m_j_text);
   CloseWindow();
 
   return 0;

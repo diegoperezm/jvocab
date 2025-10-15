@@ -10,17 +10,30 @@
 #define SIZE_COLS 12
 #define SIZE_ROWS 12
 
-#define STATE_TABLE                                                      \
+#define STATE_TABLE_APP                                                  \
+  X(STATE_A)                                                             \
+  X(STATE_B)                                                             \
+  X(STATE_C)                                                             \
+  X(INVALID_STATE_APP)                                                   \
+  X(NUM_STATES_APP)
+
+#define EVENT_TABLE_APP                                                  \
+  X(evt_click_a)                                                         \
+  X(evt_click_b)                                                         \
+  X(evt_click_c)                                                         \
+  X(NUM_EVENTS_APP)
+
+#define STATE_TABLE_J_TEXT                                               \
   X(STATE_INIT)                                                          \
   X(STATE_IDLE)                                                          \
   X(STATE_HOVERING)                                                      \
   X(STATE_SELECTED)                                                      \
   X(STATE_SELECTED_HOVERING)                                             \
   X(STATE_ERROR)                                                         \
-  X(INVALID_STATE)                                                       \
-  X(NUM_STATES)
+  X(INVALID_STATE_J_TEXT)                                                \
+  X(NUM_STATES_J_TEXT)
 
-#define EVENT_TABLE                                                       \
+#define EVENT_TABLE_J_TEXT                                                \
   X(evt_font_loaded)                                                      \
   X(evt_font_failed)                                                      \
   X(evt_mouse_hover_char)                                                 \
@@ -28,26 +41,47 @@
   X(evt_click_char)                                                       \
   X(evt_click_same_char)                                                  \
   X(evt_click_empty)                                                      \
-  X(NUM_EVENTS)
+  X(NUM_EVENTS_J_TEXT)
+
 
 #define X(state) state,
 typedef enum
 {
-  STATE_TABLE
-} State;
+  STATE_TABLE_APP
+} StateApp;
 #undef X
 
 #define X(event) event,
 typedef enum
 {
-  EVENT_TABLE
-} Event;
+  EVENT_TABLE_APP
+} EventApp;
 #undef X
 
-extern const char *state_name[];
-extern const char *event_name[];
 
-extern State transition_table[NUM_STATES][NUM_EVENTS];
+#define X(state) state,
+typedef enum
+{
+  STATE_TABLE_J_TEXT
+} StateJText;
+#undef X
+
+#define X(event) event,
+typedef enum
+{
+  EVENT_TABLE_J_TEXT
+} EventJText;
+#undef X
+
+extern const char *state_name_app[];
+extern const char *event_name_app[];
+
+extern const char *state_name_j_text[];
+extern const char *event_name_j_text[];
+
+extern StateApp   transition_table_app[NUM_STATES_APP][NUM_EVENTS_APP];
+extern StateJText transition_table_j_text[NUM_STATES_J_TEXT][NUM_EVENTS_J_TEXT];
+
 typedef struct 
 {
  int hovered_char;
@@ -58,10 +92,19 @@ typedef struct
 
 typedef struct
 {
-  State current_state;
+  StateJText current_state;
   SelectionContext context; 
   int font_loaded;
-} Machine;
+} MachineJText;
+
+
+typedef struct
+{
+  StateApp current_state;
+} MachineApp;
+
+
+
 
 #define ELEMENT_LIST                                                           \
   X(ELMNT_BLANK)                                                               \
@@ -106,22 +149,25 @@ typedef struct
 } TextData;
 
 
+void init_machine_j_text(MachineJText *machine);
+void update_state_j_text(MachineJText *machine, EventJText event);
+void render_j_text(MachineJText *machine, TextData *text_data);
+void cleanup_machine_j_text(MachineJText *machine);
 
+void update_state_app(MachineApp *machine, EventApp event);
 
-void init_machine(Machine *machine);
-void update_state(Machine *machine, Event event);
-Event process_input(Machine *machine, TextData *text_data);
-void render_state(Machine *machine, TextData *text_data);
 TextData *init_text(const char text[]);
 void cleanup_text(TextData *text_data);
-void cleanup_machine(Machine *machine);
 
 int GuiButtonCodepoint(Rectangle bounds, Font font, int codepoint,
     float fontSize, Color textColor);
 
 void setup_raylib(void);
-void render_components(Machine *machine, TextData *text_data);
-int (*Return_Map_Pr(State state))[SIZE_ROWS][SIZE_COLS];
+
+void render_components(MachineApp *m_app, MachineJText *m_j_text, TextData *text_data);
+
+int (*Return_Map(StateApp state))[SIZE_ROWS][SIZE_COLS];
+
 int *CodepointRemoveDuplicates(int *codepoints, int codepointCount, 
                                int *codepointResultCount);
 

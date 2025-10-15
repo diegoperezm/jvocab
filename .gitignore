@@ -124,11 +124,13 @@ tags
 [._]*.un~
 
 # Project
+debug/
 build/
 .cache
 .idea
 .idea/*.xml
 ./.idea
+
 
 data/
 ./external

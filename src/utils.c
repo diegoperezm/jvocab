@@ -10,18 +10,29 @@
 #include <stdio.h>
 
 #define X(state) #state,
-const char *state_name[] = {STATE_TABLE};
+const char *state_name_app[] = {STATE_TABLE_APP};
+#undef X
+
+#define X(state) #state,
+const char *state_name_j_text[] = {STATE_TABLE_J_TEXT};
+#undef X
+
+
+#define X(event) #event,
+const char *event_name_app[] = {EVENT_TABLE_APP};
 #undef X
 
 #define X(event) #event,
-const char *event_name[] = {EVENT_TABLE};
+const char *event_name_j_text[] = {EVENT_TABLE_J_TEXT};
 #undef X
 
 #define X(element) #element,
 const char *element_list[] = {ELEMENT_LIST};
 #undef X
 
-State transition_table[NUM_STATES][NUM_EVENTS] = {
+StateApp transition_table_app[NUM_STATES_APP][NUM_EVENTS_APP]= {0}; 
+
+StateJText transition_table_j_text[NUM_STATES_J_TEXT][NUM_EVENTS_J_TEXT] = {
     [STATE_INIT] =
         {
             [evt_font_loaded] = STATE_IDLE,
@@ -41,17 +52,17 @@ State transition_table[NUM_STATES][NUM_EVENTS] = {
         },
     [STATE_SELECTED] =
         {
-            [evt_click_char] = INVALID_STATE,
+            [evt_click_char] = INVALID_STATE_J_TEXT,
             //[evt_mouse_hover_char] = STATE_HOVERING,
             //[evt_mouse_leave_char] = STATE_IDLE,
             //[evt_click_empty] = STATE_IDLE,
             //[evt_click_same_char] = INVALID_STATE,
         },
     [STATE_ERROR] = {0},
-    [INVALID_STATE] = {0},
+    [INVALID_STATE_J_TEXT] = {0},
 };
 
-void init_machine(Machine *machine)
+void init_machine_j_text(MachineJText *machine)
 {
   machine->current_state = STATE_INIT;
   machine->context.hovered_char = -1;
@@ -165,32 +176,43 @@ void cleanup_text(TextData *text_data)
     UnloadFont(text_data->font_japanese);
 }
 
-void cleanup_machine(Machine *machine)
+void cleanup_machine_j_text(MachineJText *machine)
 {
   (void)printf("%d", machine->current_state);
 }
 
-int (*Return_Map_Pr(const State state))
+
+int (*Return_Map(StateApp state))
     [SIZE_ROWS][SIZE_COLS]
 {
-  static int map[SIZE_ROWS][SIZE_COLS] = {0};
-
+  //static int map[SIZE_ROWS][SIZE_COLS] = {0};
+  (void)state;
   static int map_state_root[SIZE_ROWS][SIZE_COLS] = {
       {TOGGLE_GROUP},
+      {ELMNT_BLANK},                                                           
+      {J_TEXT},                                                                    
   };
 
+ return &map_state_root;
+
+/*
   switch (state)
   {
-  case STATE_INIT:
+  case STATE_IDLE:
+  case STATE_HOVERING:
+  case STATE_SELECTED:
     return &map_state_root;
-  case INVALID_STATE:
-  case NUM_STATES:
+  case STATE_INIT:
+  case INVALID_STATE_APP:
+  case NUM_STATES_APP:
   default:
     return &map;
   }
+*/
+
 }
 
-void render_components(Machine *machine, TextData *text_data)
+void render_components(MachineApp *m_app, MachineJText *m_j_text, TextData *text_data)
 {
   const float width = (float)GetScreenWidth();
   const float height = (float)GetScreenHeight();
@@ -200,8 +222,9 @@ void render_components(Machine *machine, TextData *text_data)
   // const int font_size = (int)(cell_width * 0.5F);
 
   int (*map)[SIZE_ROWS][SIZE_COLS] =
-      Return_Map_Pr(machine->current_state);
-  int temp = machine->current_state;
+      Return_Map(m_app->current_state);
+
+  int temp = m_app->current_state;
 
   for (int row = 0; row < SIZE_ROWS; row++)
   {
@@ -223,7 +246,7 @@ void render_components(Machine *machine, TextData *text_data)
             "A;B;C;D",
             &temp);
 
-        if (temp != (int)machine->current_state)
+        if (temp != (int)m_app->current_state)
         {
           /*
           Event(temp):
@@ -231,12 +254,12 @@ void render_components(Machine *machine, TextData *text_data)
           GuiToggleGroup(..., "TODAY;MONTH;YEAR;GRAPH",
           ...); should be the same.
           */
-          update_state(machine, temp);
+          update_state_app(m_app, temp);
         }
 
         break;
       case J_TEXT:
-         render_state(machine,text_data);
+         render_j_text(m_j_text,text_data);
       default:
         break;
       }
@@ -251,7 +274,7 @@ void setup_raylib(void)
   const int screenH = 600;
   SetConfigFlags(FLAG_WINDOW_RESIZABLE);
   InitWindow(screenW, screenH, "Journal");
-  SetTargetFPS(1);
+  SetTargetFPS(30);
   GuiLoadStyleCyber();
 }
 
@@ -443,9 +466,9 @@ int GuiButtonCodepoint(
   return result;
 }
 
-void render_state(Machine *machine, TextData *text_data)
+void render_j_text(MachineJText *machine, TextData *text_data)
 {
-  State current_state = machine->current_state;
+  StateJText current_state = machine->current_state;
 
   if (!machine->font_loaded ||
       text_data->font_japanese.texture.id == 0)
@@ -504,12 +527,12 @@ void render_state(Machine *machine, TextData *text_data)
       if (button_state == is_selected)
       {
         machine->context.clicked_char = button_index;
-        update_state(machine, evt_click_char);
+        update_state_j_text(machine, evt_click_char);
       }
       if (button_state == is_hovered)
       {
         machine->context.hovered_char = button_index;
-        update_state(machine, evt_mouse_hover_char);
+        update_state_j_text(machine, evt_mouse_hover_char);
       }
       break;
     } 
@@ -537,7 +560,7 @@ void render_state(Machine *machine, TextData *text_data)
       if (button_state == is_selected)
       {
         machine->context.clicked_char = button_index;
-        update_state(machine, evt_click_char);
+        update_state_j_text(machine, evt_click_char);
       }
       break;
     }
@@ -599,12 +622,12 @@ void render_state(Machine *machine, TextData *text_data)
      case STATE_INIT: 
      case STATE_SELECTED_HOVERING: 
      case STATE_ERROR:
-     case INVALID_STATE:
-     case NUM_STATES:
+     case INVALID_STATE_J_TEXT:
+     case NUM_STATES_J_TEXT:
      break;
     }
   } // end::for
-
+/*
   const char *state_n = state_name[current_state];
   DrawText(
       TextFormat("State: %s", state_n),
@@ -612,22 +635,41 @@ void render_state(Machine *machine, TextData *text_data)
       10,
       20,
       GREEN);
+*/
 }
 
-void update_state(Machine *machine, Event event)
-{
-  State current = machine->current_state;
-  State next = transition_table[current][event];
 
-  if (next != INVALID_STATE && next != 0)
+void update_state_app(MachineApp *machine, EventApp event)
+{
+  StateApp current = machine->current_state;
+  StateApp next = transition_table_app[current][event];
+
+  if (next != INVALID_STATE_APP && next != 0)
   {
     TraceLog(
         LOG_INFO,
         "State transition: %s + %s -> %s",
-        state_name[current],
-        event_name[event],
-        state_name[next]);
+        state_name_app[current],
+        event_name_app[event],
+        state_name_app[next]);
     machine->current_state = next;
   }
+}
 
+
+void update_state_j_text(MachineJText *machine, EventJText event)
+{
+  StateJText current = machine->current_state;
+  StateJText next = transition_table_j_text[current][event];
+
+  if (next != INVALID_STATE_J_TEXT && next != 0)
+  {
+    TraceLog(
+        LOG_INFO,
+        "State transition: %s + %s -> %s",
+        state_name_j_text[current],
+        event_name_j_text[event],
+        state_name_j_text[next]);
+    machine->current_state = next;
+  }
 }
