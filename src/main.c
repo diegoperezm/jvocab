@@ -9,7 +9,10 @@ int main(void)
 {
   setup_raylib();
   const Color BGCOLOR = (Color){1, 34, 43, 255};
-  MachineApp m_app = {.current_state = STATE_A};
+
+  MachineApp m_app;
+  init_machine_app(&m_app);
+
   MachineJText m_j_text;
   init_machine_j_text(&m_j_text);
 

@@ -62,6 +62,10 @@ StateJText transition_table_j_text[NUM_STATES_J_TEXT][NUM_EVENTS_J_TEXT] = {
     [INVALID_STATE_J_TEXT] = {0},
 };
 
+void init_machine_app(MachineApp *machine) {
+ machine->current_state = STATE_A;
+}
+
 void init_machine_j_text(MachineJText *machine)
 {
   machine->current_state = STATE_INIT;

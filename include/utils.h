@@ -154,6 +154,7 @@ void update_state_j_text(MachineJText *machine, EventJText event);
 void render_j_text(MachineJText *machine, TextData *text_data);
 void cleanup_machine_j_text(MachineJText *machine);
 
+void init_machine_app(MachineApp *machine);
 void update_state_app(MachineApp *machine, EventApp event);
 
 TextData *init_text(const char text[]);
