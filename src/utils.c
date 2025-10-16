@@ -17,7 +17,6 @@ const char *state_name_app[] = {STATE_TABLE_APP};
 const char *event_name_app[] = {EVENT_TABLE_APP};
 #undef X
 
-
 #define X(state) #state,
 const char *state_name_j_text[] = {STATE_TABLE_J_TEXT};
 #undef X
@@ -30,56 +29,90 @@ const char *event_name_j_text[] = {EVENT_TABLE_J_TEXT};
 const char *element_list[] = {ELEMENT_LIST};
 #undef X
 
-StateApp transition_table_app[NUM_STATES_APP][NUM_EVENTS_APP]= {
-  [STATE_A] = {
-    [evt_click_a] = INVALID_STATE_APP,
-    [evt_click_b] = STATE_B, 
-    [evt_click_c] = STATE_C, 
-  },
-  [STATE_B] = {
-    [evt_click_a] =  STATE_A, 
-    [evt_click_b] =  INVALID_STATE_APP,
-    [evt_click_c] =  STATE_C, 
-  },
-  [STATE_C] = {
-    [evt_click_a] =  STATE_A, 
-    [evt_click_b] =  STATE_B, 
-    [evt_click_c] =  INVALID_STATE_APP, 
-  }
-}; 
+StateApp
+    transition_table_app[NUM_STATES_APP][NUM_EVENTS_APP] = {
+        [STATE_CHAPTERS] =
+            {
+                [evt_click_chapters]   = INVALID_STATE_APP,
+                [evt_click_vocabulary] = STATE_VOCABULARY,
+                [evt_click_dictionary] = STATE_DICTIONARY,
+                [evt_click_practice]   = STATE_PRACTICE, 
+                [evt_click_progress]   = STATE_PROGRESS,
+            },
 
-StateJText transition_table_j_text[NUM_STATES_J_TEXT][NUM_EVENTS_J_TEXT] = {
-    [STATE_INIT] =
+        [STATE_VOCABULARY] =
+            {
+                [evt_click_chapters]   = STATE_CHAPTERS,
+                [evt_click_vocabulary] = INVALID_STATE_APP,
+                [evt_click_dictionary] = STATE_DICTIONARY,
+                [evt_click_practice]   = STATE_PRACTICE, 
+                [evt_click_progress]   = STATE_PROGRESS,
+ 
+            },
+
+        [STATE_DICTIONARY] = 
         {
-            [evt_font_loaded] = STATE_IDLE,
-            [evt_font_failed] = STATE_ERROR,
+                [evt_click_chapters]   = STATE_CHAPTERS,
+                [evt_click_vocabulary] = STATE_VOCABULARY,
+                [evt_click_dictionary] = INVALID_STATE_APP, 
+                [evt_click_practice]   = STATE_PRACTICE, 
+                [evt_click_progress]   = STATE_PROGRESS,
+ 
         },
-    [STATE_IDLE] =
+        [STATE_PRACTICE] = 
         {
-            [evt_mouse_hover_char] = STATE_HOVERING,
-            [evt_click_char] = STATE_SELECTED,
+                [evt_click_chapters]   = STATE_CHAPTERS,
+                [evt_click_vocabulary] = STATE_VOCABULARY,
+                [evt_click_dictionary] = STATE_DICTIONARY,
+                [evt_click_practice]   = INVALID_STATE_APP,  
+                [evt_click_progress]   = STATE_PROGRESS,
+ 
+         },
+
+        [STATE_PROGRESS] = {
+                [evt_click_chapters]   = STATE_CHAPTERS,
+                [evt_click_vocabulary] = STATE_VOCABULARY,
+                [evt_click_dictionary] = STATE_DICTIONARY,
+                [evt_click_practice]   = STATE_PRACTICE,
+                [evt_click_progress]   = INVALID_STATE_APP,   
         },
 
-    [STATE_HOVERING] =
-        {
-            [evt_mouse_hover_char] = STATE_HOVERING,
-            [evt_click_char] = STATE_SELECTED,
-        //  [evt_mouse_leave_char] = STATE_IDLE,
-        },
-    [STATE_SELECTED] =
-        {
-            [evt_click_char] = INVALID_STATE_J_TEXT,
-            //[evt_mouse_hover_char] = STATE_HOVERING,
-            //[evt_mouse_leave_char] = STATE_IDLE,
-            //[evt_click_empty] = STATE_IDLE,
-            //[evt_click_same_char] = INVALID_STATE,
-        },
-    [STATE_ERROR] = {0},
-    [INVALID_STATE_J_TEXT] = {0},
+        };
+
+StateJText transition_table_j_text
+    [NUM_STATES_J_TEXT][NUM_EVENTS_J_TEXT] = {
+        [STATE_INIT] =
+            {
+                [evt_font_loaded] = STATE_IDLE,
+                [evt_font_failed] = STATE_ERROR,
+            },
+        [STATE_IDLE] =
+            {
+                [evt_mouse_hover_char] = STATE_HOVERING,
+                [evt_click_char] = STATE_SELECTED,
+            },
+
+        [STATE_HOVERING] =
+            {
+                [evt_mouse_hover_char] = STATE_HOVERING,
+                [evt_click_char] = STATE_SELECTED,
+                //  [evt_mouse_leave_char] = STATE_IDLE,
+            },
+        [STATE_SELECTED] =
+            {
+                [evt_click_char] = INVALID_STATE_J_TEXT,
+                //[evt_mouse_hover_char] = STATE_HOVERING,
+                //[evt_mouse_leave_char] = STATE_IDLE,
+                //[evt_click_empty] = STATE_IDLE,
+                //[evt_click_same_char] = INVALID_STATE,
+            },
+        [STATE_ERROR] = {0},
+        [INVALID_STATE_J_TEXT] = {0},
 };
 
-void init_machine_app(MachineApp *machine) {
- machine->current_state = STATE_A;
+void init_machine_app(MachineApp *machine)
+{
+  machine->current_state = STATE_CHAPTERS;
 }
 
 void init_machine_j_text(MachineJText *machine)
@@ -201,39 +234,56 @@ void cleanup_machine_j_text(MachineJText *machine)
   (void)printf("%d", machine->current_state);
 }
 
-
-int (*Return_Map(StateApp state))
-    [SIZE_ROWS][SIZE_COLS]
+int (*Return_Map(StateApp state)) [SIZE_ROWS][SIZE_COLS]
 {
-  //static int map[SIZE_ROWS][SIZE_COLS] = {0};
-  (void)state;
+  static int map[SIZE_ROWS][SIZE_COLS] = {0};
 
-  static int map_state_root[SIZE_ROWS][SIZE_COLS] = {
+  static int map_state_chapters[SIZE_ROWS][SIZE_COLS] = {
       {TOGGLE_GROUP},
-      {ELMNT_BLANK},                                                           
-      {J_TEXT},                                                                    
   };
 
- return &map_state_root;
+  static int map_state_vocabulary[SIZE_ROWS][SIZE_COLS] = {
+      {TOGGLE_GROUP},
+  };
 
-/*
+  static int map_state_dictionary[SIZE_ROWS][SIZE_COLS] = {
+      {TOGGLE_GROUP},
+      {ELMNT_BLANK},
+      {J_TEXT},
+  };
+
+  static int map_state_practice[SIZE_ROWS][SIZE_COLS] = {
+      {TOGGLE_GROUP},
+  };
+
+  static int map_state_progress[SIZE_ROWS][SIZE_COLS] = {
+      {TOGGLE_GROUP},
+  };
+
   switch (state)
   {
-  case STATE_IDLE:
-  case STATE_HOVERING:
-  case STATE_SELECTED:
-    return &map_state_root;
-  case STATE_INIT:
+  case STATE_CHAPTERS:
+    return &map_state_chapters;
+  case STATE_VOCABULARY:
+    return &map_state_vocabulary;
+  case STATE_DICTIONARY:
+    return &map_state_dictionary;
+  case STATE_PRACTICE:
+    return &map_state_practice;
+  case STATE_PROGRESS:
+    return &map_state_progress;
   case INVALID_STATE_APP:
   case NUM_STATES_APP:
   default:
     return &map;
   }
-*/
-
+  return &map;
 }
 
-void render_components(MachineApp *m_app, MachineJText *m_j_text, TextData *text_data)
+void render_components(
+    MachineApp *m_app,
+    MachineJText *m_j_text,
+    TextData *text_data)
 {
   const float width = (float)GetScreenWidth();
   const float height = (float)GetScreenHeight();
@@ -264,7 +314,11 @@ void render_components(MachineApp *m_app, MachineJText *m_j_text, TextData *text
                         cell.y,
                         cell.width,
                         cell.height},
-            "A;B;C", &temp);
+            "CHAPTERS;VOCABULARY;DICTIONARY;PRACTICE;PROGRESS",
+            &temp);
+
+
+
 
         if (temp != (int)m_app->current_state)
         {
@@ -274,14 +328,12 @@ void render_components(MachineApp *m_app, MachineJText *m_j_text, TextData *text
           GuiToggleGroup(..., "TODAY;MONTH;YEAR;GRAPH",
           ...); should be the same.
           */
-         update_state_app(m_app,(EventApp) temp);
+          update_state_app(m_app, (EventApp)temp);
         }
-         
-        
 
         break;
       case J_TEXT:
-         render_j_text(m_j_text,text_data);
+        render_j_text(m_j_text, text_data);
       default:
         break;
       }
@@ -488,7 +540,9 @@ int GuiButtonCodepoint(
   return result;
 }
 
-void render_j_text(MachineJText *machine, TextData *text_data)
+void render_j_text(
+    MachineJText *machine,
+    TextData *text_data)
 {
   StateJText current_state = machine->current_state;
 
@@ -539,7 +593,7 @@ void render_j_text(MachineJText *machine, TextData *text_data)
       machine->context.select_length = 0;
       machine->context.hovered_char = -1;
       machine->context.clicked_char = -1;
- 
+
       int button_state = GuiButtonCodepoint(
           char_rect,
           text_data->font_japanese,
@@ -557,7 +611,7 @@ void render_j_text(MachineJText *machine, TextData *text_data)
         update_state_j_text(machine, evt_mouse_hover_char);
       }
       break;
-    } 
+    }
     case STATE_HOVERING:
     {
       int button_state = GuiButtonCodepoint(
@@ -641,25 +695,24 @@ void render_j_text(MachineJText *machine, TextData *text_data)
       }
       break;
     }
-     case STATE_INIT: 
-     case STATE_SELECTED_HOVERING: 
-     case STATE_ERROR:
-     case INVALID_STATE_J_TEXT:
-     case NUM_STATES_J_TEXT:
-     break;
+    case STATE_INIT:
+    case STATE_SELECTED_HOVERING:
+    case STATE_ERROR:
+    case INVALID_STATE_J_TEXT:
+    case NUM_STATES_J_TEXT:
+      break;
     }
   } // end::for
-/*
-  const char *state_n = state_name[current_state];
-  DrawText(
-      TextFormat("State: %s", state_n),
-      10,
-      10,
-      20,
-      GREEN);
-*/
+  /*
+    const char *state_n = state_name[current_state];
+    DrawText(
+        TextFormat("State: %s", state_n),
+        10,
+        10,
+        20,
+        GREEN);
+  */
 }
-
 
 void update_state_app(MachineApp *machine, EventApp event)
 {
@@ -678,8 +731,9 @@ void update_state_app(MachineApp *machine, EventApp event)
   }
 }
 
-
-void update_state_j_text(MachineJText *machine, EventJText event)
+void update_state_j_text(
+    MachineJText *machine,
+    EventJText event)
 {
   StateJText current = machine->current_state;
   StateJText next = transition_table_j_text[current][event];

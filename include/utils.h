@@ -11,16 +11,21 @@
 #define SIZE_ROWS 12
 
 #define STATE_TABLE_APP                                                  \
-  X(STATE_A)                                                             \
-  X(STATE_B)                                                             \
-  X(STATE_C)                                                             \
+  X(STATE_CHAPTERS)                                                      \
+  X(STATE_VOCABULARY)                                                    \
+  X(STATE_DICTIONARY)                                                    \
+  X(STATE_PRACTICE)                                                      \
+  X(STATE_PROGRESS)                                                      \
   X(INVALID_STATE_APP)                                                   \
   X(NUM_STATES_APP)
 
 #define EVENT_TABLE_APP                                                  \
-  X(evt_click_a)                                                         \
-  X(evt_click_b)                                                         \
-  X(evt_click_c)                                                         \
+  X(evt_click_chapters)                                                  \
+  X(evt_click_vocabulary)                                                \
+  X(evt_click_dictionary)                                                \
+  X(evt_click_practice)                                                  \
+  X(evt_click_progress)                                                  \
+  X(evt_click_j_text)                                                    \
   X(NUM_EVENTS_APP)
 
 #define STATE_TABLE_J_TEXT                                               \
@@ -42,6 +47,14 @@
   X(evt_click_same_char)                                                  \
   X(evt_click_empty)                                                      \
   X(NUM_EVENTS_J_TEXT)
+
+
+#define ELEMENT_LIST                                                      \
+  X(ELMNT_BLANK)                                                          \
+  X(TOGGLE_GROUP)                                                         \
+  X(ELMNT_CHAPTERS)                                                       \
+  X(J_TEXT)                                                               \
+  X(ELMNT_NUM)
 
 
 #define X(state) state,
@@ -73,11 +86,21 @@ typedef enum
 } EventJText;
 #undef X
 
+#define X(element) element,
+typedef enum
+{
+  ELEMENT_LIST
+} Element;
+#undef X
+
+
 extern const char *state_name_app[];
 extern const char *event_name_app[];
 
 extern const char *state_name_j_text[];
 extern const char *event_name_j_text[];
+
+extern const char *element_list[];
 
 extern StateApp   transition_table_app[NUM_STATES_APP][NUM_EVENTS_APP];
 extern StateJText transition_table_j_text[NUM_STATES_J_TEXT][NUM_EVENTS_J_TEXT];
@@ -102,21 +125,6 @@ typedef struct
 {
   StateApp current_state;
 } MachineApp;
-
-#define ELEMENT_LIST                                                           \
-  X(ELMNT_BLANK)                                                               \
-  X(TOGGLE_GROUP)                                                              \
-  X(J_TEXT)                                                                    \
-  X(ELMNT_NUM)
-
-#define X(element) element,
-typedef enum
-{
-  ELEMENT_LIST
-} Element;
-#undef X
-
-extern const char *element_list[];
 
 typedef struct
 {
