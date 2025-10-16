@@ -103,9 +103,6 @@ typedef struct
   StateApp current_state;
 } MachineApp;
 
-
-
-
 #define ELEMENT_LIST                                                           \
   X(ELMNT_BLANK)                                                               \
   X(TOGGLE_GROUP)                                                              \

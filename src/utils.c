@@ -13,13 +13,13 @@
 const char *state_name_app[] = {STATE_TABLE_APP};
 #undef X
 
-#define X(state) #state,
-const char *state_name_j_text[] = {STATE_TABLE_J_TEXT};
+#define X(event) #event,
+const char *event_name_app[] = {EVENT_TABLE_APP};
 #undef X
 
 
-#define X(event) #event,
-const char *event_name_app[] = {EVENT_TABLE_APP};
+#define X(state) #state,
+const char *state_name_j_text[] = {STATE_TABLE_J_TEXT};
 #undef X
 
 #define X(event) #event,
@@ -30,7 +30,23 @@ const char *event_name_j_text[] = {EVENT_TABLE_J_TEXT};
 const char *element_list[] = {ELEMENT_LIST};
 #undef X
 
-StateApp transition_table_app[NUM_STATES_APP][NUM_EVENTS_APP]= {0}; 
+StateApp transition_table_app[NUM_STATES_APP][NUM_EVENTS_APP]= {
+  [STATE_A] = {
+    [evt_click_a] = INVALID_STATE_APP,
+    [evt_click_b] = STATE_B, 
+    [evt_click_c] = STATE_C, 
+  },
+  [STATE_B] = {
+    [evt_click_a] =  STATE_A, 
+    [evt_click_b] =  INVALID_STATE_APP,
+    [evt_click_c] =  STATE_C, 
+  },
+  [STATE_C] = {
+    [evt_click_a] =  STATE_A, 
+    [evt_click_b] =  STATE_B, 
+    [evt_click_c] =  INVALID_STATE_APP, 
+  }
+}; 
 
 StateJText transition_table_j_text[NUM_STATES_J_TEXT][NUM_EVENTS_J_TEXT] = {
     [STATE_INIT] =
@@ -191,6 +207,7 @@ int (*Return_Map(StateApp state))
 {
   //static int map[SIZE_ROWS][SIZE_COLS] = {0};
   (void)state;
+
   static int map_state_root[SIZE_ROWS][SIZE_COLS] = {
       {TOGGLE_GROUP},
       {ELMNT_BLANK},                                                           
@@ -247,8 +264,7 @@ void render_components(MachineApp *m_app, MachineJText *m_j_text, TextData *text
                         cell.y,
                         cell.width,
                         cell.height},
-            "A;B;C;D",
-            &temp);
+            "A;B;C", &temp);
 
         if (temp != (int)m_app->current_state)
         {
@@ -258,8 +274,10 @@ void render_components(MachineApp *m_app, MachineJText *m_j_text, TextData *text
           GuiToggleGroup(..., "TODAY;MONTH;YEAR;GRAPH",
           ...); should be the same.
           */
-          update_state_app(m_app, temp);
+         update_state_app(m_app,(EventApp) temp);
         }
+         
+        
 
         break;
       case J_TEXT:
@@ -648,7 +666,7 @@ void update_state_app(MachineApp *machine, EventApp event)
   StateApp current = machine->current_state;
   StateApp next = transition_table_app[current][event];
 
-  if (next != INVALID_STATE_APP && next != 0)
+  if (next != INVALID_STATE_APP)
   {
     TraceLog(
         LOG_INFO,
