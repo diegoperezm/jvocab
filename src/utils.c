@@ -34,15 +34,28 @@ StateApp
         [STATE_CHAPTERS] =
             {
                 [evt_click_chapters]   = INVALID_STATE_APP,
+                [evt_click_reading]    = STATE_READING,
                 [evt_click_vocabulary] = STATE_VOCABULARY,
                 [evt_click_dictionary] = STATE_DICTIONARY,
                 [evt_click_practice]   = STATE_PRACTICE, 
                 [evt_click_progress]   = STATE_PROGRESS,
             },
 
+        [STATE_READING] =
+            {
+                [evt_click_chapters]   = STATE_CHAPTERS,
+                [evt_click_reading]    = INVALID_STATE_APP,
+                [evt_click_vocabulary] = STATE_VOCABULARY,
+                [evt_click_dictionary] = STATE_DICTIONARY,
+                [evt_click_practice]   = STATE_PRACTICE, 
+                [evt_click_progress]   = STATE_PROGRESS,
+            },
+
+
         [STATE_VOCABULARY] =
             {
                 [evt_click_chapters]   = STATE_CHAPTERS,
+                [evt_click_reading]    = STATE_READING,
                 [evt_click_vocabulary] = INVALID_STATE_APP,
                 [evt_click_dictionary] = STATE_DICTIONARY,
                 [evt_click_practice]   = STATE_PRACTICE, 
@@ -53,6 +66,7 @@ StateApp
         [STATE_DICTIONARY] = 
         {
                 [evt_click_chapters]   = STATE_CHAPTERS,
+                [evt_click_reading]    = STATE_READING,
                 [evt_click_vocabulary] = STATE_VOCABULARY,
                 [evt_click_dictionary] = INVALID_STATE_APP, 
                 [evt_click_practice]   = STATE_PRACTICE, 
@@ -62,6 +76,7 @@ StateApp
         [STATE_PRACTICE] = 
         {
                 [evt_click_chapters]   = STATE_CHAPTERS,
+                [evt_click_reading]    = STATE_READING,
                 [evt_click_vocabulary] = STATE_VOCABULARY,
                 [evt_click_dictionary] = STATE_DICTIONARY,
                 [evt_click_practice]   = INVALID_STATE_APP,  
@@ -71,6 +86,7 @@ StateApp
 
         [STATE_PROGRESS] = {
                 [evt_click_chapters]   = STATE_CHAPTERS,
+                [evt_click_reading]    = STATE_READING,
                 [evt_click_vocabulary] = STATE_VOCABULARY,
                 [evt_click_dictionary] = STATE_DICTIONARY,
                 [evt_click_practice]   = STATE_PRACTICE,
@@ -112,7 +128,7 @@ StateJText transition_table_j_text
 
 void init_machine_app(MachineApp *machine)
 {
-  machine->current_state = STATE_CHAPTERS;
+  machine->current_state = STATE_PROGRESS;
 }
 
 void init_machine_j_text(MachineJText *machine)
@@ -242,14 +258,18 @@ int (*Return_Map(StateApp state)) [SIZE_ROWS][SIZE_COLS]
       {TOGGLE_GROUP},
   };
 
+  static int map_state_reading[SIZE_ROWS][SIZE_COLS] = {
+      {TOGGLE_GROUP},
+      {ELMNT_BLANK},
+      {J_TEXT},
+  };
+
   static int map_state_vocabulary[SIZE_ROWS][SIZE_COLS] = {
       {TOGGLE_GROUP},
   };
 
   static int map_state_dictionary[SIZE_ROWS][SIZE_COLS] = {
       {TOGGLE_GROUP},
-      {ELMNT_BLANK},
-      {J_TEXT},
   };
 
   static int map_state_practice[SIZE_ROWS][SIZE_COLS] = {
@@ -258,12 +278,17 @@ int (*Return_Map(StateApp state)) [SIZE_ROWS][SIZE_COLS]
 
   static int map_state_progress[SIZE_ROWS][SIZE_COLS] = {
       {TOGGLE_GROUP},
+      {ELMNT_BLANK},
+      {ELMNT_BLANK},
+      {ELMNT_BLANK,ELMNT_BLANK,ELMNT_BLANK, ELMNT_STATS},
   };
 
   switch (state)
   {
   case STATE_CHAPTERS:
     return &map_state_chapters;
+   case STATE_READING:
+    return &map_state_reading;
   case STATE_VOCABULARY:
     return &map_state_vocabulary;
   case STATE_DICTIONARY:
@@ -289,8 +314,10 @@ void render_components(
   const float height = (float)GetScreenHeight();
   const float cell_width = width / GRID_COLS;
   const float cell_height = height / GRID_ROWS;
-  // const Color font_color = GetColor(GuiGetStyle(0, 2));
+  const Color font_color = GetColor(GuiGetStyle(0, 2));
   // const int font_size = (int)(cell_width * 0.5F);
+
+  //const char chapters[] = "" ;
 
   int (*map)[SIZE_ROWS][SIZE_COLS] =
       Return_Map(m_app->current_state);
@@ -303,8 +330,10 @@ void render_components(
     {
       const float cell_x = (float)col * cell_width;
       const float cell_y = (float)row * cell_height;
-      const Rectangle cell =
-          {cell_x, cell_y, cell_width, cell_height};
+      //Vector2 graph_start = {cell_x, cell_y};
+      //Vector2 graph_end   = {cell_x, cell_y};
+
+      const Rectangle cell = {cell_x, cell_y, cell_width, cell_height};
 
       switch ((*map)[row][col])
       {
@@ -314,11 +343,8 @@ void render_components(
                         cell.y,
                         cell.width,
                         cell.height},
-            "CHAPTERS;VOCABULARY;DICTIONARY;PRACTICE;PROGRESS",
+            "CHAPTERS;READING;VOCABULARY;DICTIONARY;PRACTICE;PROGRESS",
             &temp);
-
-
-
 
         if (temp != (int)m_app->current_state)
         {
@@ -330,10 +356,32 @@ void render_components(
           */
           update_state_app(m_app, (EventApp)temp);
         }
+        break;
+
+      case ELMNT_CHAPTERS:
+        break;
+
+      case ELMNT_STATS:
+        // TODO: fix, wrong cell coordinates causing misaligned grid  
+        // cell_x and cell_y,
+        // vert
+         for(int i = col+1; i < 25 ; i++) {
+            DrawLineEx((Vector2){(cell_x /8) * i, cell_y}, 
+                       (Vector2){(cell_x /8) * i, cell_y * col},
+                      2.0f, font_color);
+         }
+        // TODO: fix, wrong cell coordinates causing misaligned grid  
+        // cell_x and cell_y,
+        for(int i = 4; i < 13 ; i++) {
+          DrawLineEx((Vector2){cell_y, (cell_y/4*i)}, 
+                      (Vector2){cell_y * (col*2), (cell_y/4*i)},
+                     2.0f, font_color);
+        }
 
         break;
       case J_TEXT:
         render_j_text(m_j_text, text_data);
+        break;
       default:
         break;
       }

@@ -12,6 +12,7 @@
 
 #define STATE_TABLE_APP                                                  \
   X(STATE_CHAPTERS)                                                      \
+  X(STATE_READING)                                                       \
   X(STATE_VOCABULARY)                                                    \
   X(STATE_DICTIONARY)                                                    \
   X(STATE_PRACTICE)                                                      \
@@ -21,6 +22,7 @@
 
 #define EVENT_TABLE_APP                                                  \
   X(evt_click_chapters)                                                  \
+  X(evt_click_reading)                                                   \
   X(evt_click_vocabulary)                                                \
   X(evt_click_dictionary)                                                \
   X(evt_click_practice)                                                  \
@@ -53,6 +55,7 @@
   X(ELMNT_BLANK)                                                          \
   X(TOGGLE_GROUP)                                                         \
   X(ELMNT_CHAPTERS)                                                       \
+  X(ELMNT_STATS)                                                          \
   X(J_TEXT)                                                               \
   X(ELMNT_NUM)
 

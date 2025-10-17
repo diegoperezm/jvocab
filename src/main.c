@@ -27,7 +27,6 @@ int main(void)
 
   update_state_j_text(&m_j_text, init_event_j_text);
 
-  SetTargetFPS(30);
 
   while (!WindowShouldClose())
   {
